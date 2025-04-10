@@ -89,10 +89,9 @@ function noteOff(frequency) {
 
 // Calculation functions
 function calculateNoteFrequencies() {
-  const diesis = (CONFIG.endFreq - CONFIG.startFreq) / (CONFIG.subdivisions);
-  return Array.from({ length: CONFIG.subdivisions }, (_, i) =>
-    CONFIG.startFreq + diesis * i
-  );
+  return Array.from({ length: CONFIG.subdivisions }, (_, i) => {
+    return Math.pow(2, i / CONFIG.subdivisions) * CONFIG.startFreq
+  });
 }
 
 function calculateNotePositions(radius = CONFIG.radius) {
