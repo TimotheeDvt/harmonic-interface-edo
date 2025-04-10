@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Harmonic Interface</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+	<div id="infos"><p>🛈</p></div>
+	<div id="main">
+		<h1>Harmonic Interface for EDO stuff</h1>
+		<p>
+		Hi! I'm Tim, a French musician and developer.<br>
+		I discovered the fascinating world of Equal Divisions of the Octave (EDO) thanks to <a href="https://www.youtube.com/@LeviMcClain" target="_blank">Levi McClain</a>'s inspiring work.<br>
+		This project is an experiment to explore EDO, particularly systems like 24-EDO for quarter tones and 31-EDO for its harmonic approximations (and, admittedly, a productive distraction from my revisions).
+		<br><br>
+		I hope you enjoy it! This is open source, and you can find the code <a href="https://github.com/timmmmy/harmonic-interface" target="_blank">here</a>. Please be kind – it's a passion project!
+		<br><br>
+		Let me know if you'd like any further adjustments!
+		<br><br>
+		I still under construction, so please be patient with me!<br>
+		Have a fun !!<br><br>
+		Tips : press the "space" key to toggle footer and infos visibility<br>
+	</p>
+	</div>
+  <div id="container">
+    <canvas id="circle"></canvas>
+    <div id="table-container">
+      <div id="table-container">
+				<table id="table">
+					<tbody>
+						<!-- Rows will be dynamically generated -->
+					</tbody>
+				</table>
+			</div>
+    </div>
+		<canvas id="waveform"></canvas>
+  </div>
+	<footer>
+		<form id="form">
+			<!-- <input type="number" id="StartingFreq" placeholder="Freq" value="440" min="0" required onkeypress="preventSubmit1(event)"> -->
+			<input type="number" id="subdivNb" placeholder="EDO steps" value="31" min="1" required onkeypress="preventSubmit2(event)">
+			|<input type="checkbox" id="showKey" checked>
+			<label for="showKey">Show keys</label>
+			|<input type="checkbox" id="showFreq" checked>
+			<label for="showFreq">Show frequencies</label>
+			|<select id="changeLayout">
+				<option value="AZERTY">AZERTY</option>
+				<option value="QWERTY">QWERTY</option>
+			</select>
+			|<select id="changeWaveform">
+				<option value="sine">Sine</option>
+				<option value="square">Square</option>
+				<option value="sawtooth">Sawtooth</option>
+				<option value="triangle">Triangle</option>
+			</select>
+			|<input type="checkbox" id="showWave" checked>
+			<label for="showWave">Show Wave Form</label>
+			<!-- <input type="color" id="red" checked>
+			<input type="color" id="blue" checked>
+			<input type="color" id="white" checked>
+			<input type="color" id="black" checked> -->
+		</footer>
+	<script src="index.js"></script>
+</body>
+</html>
