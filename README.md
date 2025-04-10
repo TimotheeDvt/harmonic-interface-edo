@@ -17,6 +17,7 @@
   Explore from standard 12-EDO to exotic divisions like 24-EDO (Arabic quarter tones) and 53-EDO (historical Turkish scale)
 
 - **That's all but yeah...**
+- **Soon enought** : the use of midi devices will be available (I hope) 
 
 ---
 
