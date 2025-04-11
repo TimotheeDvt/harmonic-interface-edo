@@ -82,9 +82,10 @@ a {
 #container {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 40px;
   padding: 20px;
   height: calc(100vh - 40px);
+  max-width: 100vw;
   box-sizing: border-box;
 }
 
@@ -97,27 +98,41 @@ a {
 
 #table-container {
   display: flex;
-  aspect-ratio: 1/1;
+  aspect-ratio: 1 / 1;
   width: 500px;
   height: 500px;
+  max-width: 500px;
+  max-height: 500px;
   margin: auto;
   align-items: center;
   justify-content: center;
 }
 
 table {
-  width: 400px;
-  height: 400px;
+  width: 500px;
+  height: 500px;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 td {
   border: 1px solid var(--white);
-  padding: 10px;
+  padding: 0px;
   text-align: center;
   color: var(--white);
   font-size: 3em;
   position: relative;
+  overflow: hidden;
+}
+
+td > p {
+  text-align: center;
+  color: var(--white);
+  font-size: 1em;
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  width: fit-content;
 }
 
 #waveform {
@@ -128,13 +143,15 @@ td {
   height: 150px;
   bottom: 0;
   right: 0;
+  z-index: 0;
 }
 
 .freq {
   color: var(--white);
-  font-size: 0.2em;
+  margin: auto;
   font-weight: bold;
   border-radius: 5px;
+  width: fit-content;
 }
 
 .freq:hover {
@@ -146,7 +163,6 @@ td {
 .key {
   position: absolute;
   color: var(--white);
-  font-size: 0.28em;
   font-weight: bold;
   top:0;
   right:0;
@@ -155,9 +171,17 @@ td {
   border-bottom: 1px solid var(--white);
 }
 
+.freq, .key {
+  font-size: inherit;
+}
+
+footer {
+  display: flex;
+}
+
 #form {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   justify-content: space-around;
   align-items: center;
   margin-top: -10px;
@@ -166,6 +190,7 @@ td {
   gap: 10px;
   border-radius: 5px;
   width: 100%;
+  z-index: 10;
 }
 
 input[type="number"] {
@@ -192,3 +217,4 @@ select {
   padding: 5px;
   font-size: 1.2em;
 }
+
