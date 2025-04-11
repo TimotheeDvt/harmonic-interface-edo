@@ -5,7 +5,7 @@ const CONFIG = {
   subdivisions: 31,
   radius: 50,
   startFreq: 440,
-  endFreq: 880,
+  endFreq: this.startFreq * 2,
   canvasSize: 500,
   dotSize: 4,
   scaleFactor: 4,
@@ -15,7 +15,7 @@ const CONFIG = {
   attackTime: 0.02,
   releaseTime: 0.05,
 };
-const letters = ["AZERTYUIOPQSDFGHJKLMWXCVBN"];
+const letters = ["AZERTYUIOPQSDFGHJKLMWXCVBN123456789"];
 const style = window.getComputedStyle(document.body)
 let COLORS = {
 	white: style.getPropertyValue('--white'),
@@ -32,9 +32,9 @@ const state = {
 	showKeys: true,
 	showWave: true,
 	darkMode: true,
-	layout: "AZERTYUIOPQSDFGHJKLMWXCVBN",
+	layout: "AZERTYUIOPQSDFGHJKLMWXCVBN123456789",
 	type: "sine",
-
+	time: 0
 };
 
 /********************
@@ -219,8 +219,6 @@ function fillTable() {
 		cell.style.border = "none";
 }
 
-
-
 function updateTableSize() {
 	const tds = document.querySelectorAll('td');
 	const trs = document.querySelectorAll('tr');
@@ -343,6 +341,8 @@ function writeIndexes() {
 }
 
 function drawWaveForms() {
+	if (!state.showWave) return;
+
   const canvas = document.getElementById('waveform');
   const ctx = canvas.getContext('2d');
 
@@ -362,7 +362,7 @@ function drawWaveForms() {
 		ctx.beginPath();
 		const ys = [];
 		for (let i = 0; i < waveformWidth; i++) {
-			const x = i / waveformWidth * 2 * Math.PI * frequency / 100;
+			const x = i / waveformWidth * 2 * Math.PI * frequency / 100 + state.time;
 			let y;
 			switch (state.type) {
 				case 'sine':
@@ -388,6 +388,8 @@ function drawWaveForms() {
 		ctx.lineJoin = 'round';
 		ctx.stroke();
 	}
+	state.time += 0.05; // Increment time for animation
+	if (state.time > 2 * Math.PI) state.time = 0; // Reset time to avoid overflow
 }
 
 /******************
@@ -457,14 +459,29 @@ function handleShowWaveFormClick() {
 function handleLayoutChange() {
 	state.layout = document.getElementById('changeLayout').value;
 	if (state.layout === "AZERTY")
-		letters[0] = "AZERTYUIOPQSDFGHJKLMWXCVBN";
+		letters[0] = "AZERTYUIOPQSDFGHJKLMWXCVBN123456789";
 	else if (state.layout === "QWERTY")
-		letters[0] = "QWERTYUIOPASDFGHJKLZXCVBNM";
+		letters[0] = "QWERTYUIOPASDFGHJKLZXCVBNM123456789";
 	update();
 }
 
 function handleWaveFormChange() {
 	state.type = document.getElementById('changeWaveform').value;
+	update();
+}
+
+function handleModeChange() {
+	const firstVar = getComputedStyle(document.documentElement).getPropertyValue('--white');
+	const secondVar = getComputedStyle(document.documentElement).getPropertyValue('--black');
+
+	document.documentElement.style.setProperty('--white', secondVar);
+	document.documentElement.style.setProperty('--black', firstVar);
+	COLORS = {
+		white: style.getPropertyValue('--white'),
+		black: style.getPropertyValue('--black'),
+		red: style.getPropertyValue('--red'),
+		blue: style.getPropertyValue('--blue')
+	};
 	update();
 }
 
@@ -506,7 +523,6 @@ function toggleFooterAndInfos() {
 const pressedKeys = new Set();
 document.addEventListener('keydown', (e) => {
 	if (pressedKeys.has(e.key)) return; // Prevent duplicate key presses
-	console.log(e.key)
 	pressedKeys.add(e.key);
   const noteKey = keyToFrequency(e.key);
   if (noteKey) {
@@ -575,25 +591,10 @@ function update() {
   fillTable();
 	writeIndexes();
 	drawPlayingNotes();
-	if(state.showWave)
-		drawWaveForms();
 	updateTableSize();
 }
 
-function handleModeChange() {
-	const firstVar = getComputedStyle(document.documentElement).getPropertyValue('--white');
-	const secondVar = getComputedStyle(document.documentElement).getPropertyValue('--black');
-
-	document.documentElement.style.setProperty('--white', secondVar);
-	document.documentElement.style.setProperty('--black', firstVar);
-	COLORS = {
-		white: style.getPropertyValue('--white'),
-		black: style.getPropertyValue('--black'),
-		red: style.getPropertyValue('--red'),
-		blue: style.getPropertyValue('--blue')
-	};
-	update();
-}
+const showWaveInterval = setInterval(drawWaveForms, 1000 / 50); // 30 FPS
 
 /*********************
  * START APPLICATION *
