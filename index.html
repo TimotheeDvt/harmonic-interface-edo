@@ -37,28 +37,30 @@
   </div>
 	<footer>
 		<form id="form">
-			<!-- <input type="number" id="StartingFreq" placeholder="Freq" value="440" min="0" required onkeypress="preventSubmit1(event)"> -->
-			<input type="number" id="subdivNb" placeholder="EDO steps" value="31" min="1" required onkeypress="preventSubmit2(event)">
-			|<input type="checkbox" id="showKey" checked>
-			<label for="showKey">Show keys</label>
-			|<input type="checkbox" id="showFreq" checked>
-			<label for="showFreq">Show frequencies</label>
-			|<select id="changeLayout">
-				<option value="AZERTY">AZERTY</option>
-				<option value="QWERTY">QWERTY</option>
-			</select>
-			|<select id="changeWaveform">
-				<option value="sine">Sine</option>
-				<option value="square">Square</option>
-				<option value="sawtooth">Sawtooth</option>
-				<option value="triangle">Triangle</option>
-			</select>
-			|<input type="checkbox" id="showWave" checked>
-			<label for="showWave">Show Wave Form</label>
-			<!-- <input type="color" id="red" checked>
-			<input type="color" id="blue" checked>
-			<input type="color" id="white" checked>
-			<input type="color" id="black" checked> -->
+			<div>
+				<!-- <input type="number" id="StartingFreq" placeholder="Freq" value="440" min="0" required onkeypress="preventSubmit1(event)"> -->
+				<input type="number" id="subdivNb" placeholder="EDO steps" value="37" min="1" required onkeypress="preventSubmit2(event)">
+				|<input type="checkbox" id="showKey" checked>
+				<label for="showKey">Show keys</label>
+				|<input type="checkbox" id="showFreq" checked>
+				<label for="showFreq">Show frequencies</label>
+				|<select id="changeLayout">
+					<option value="AZERTY">AZERTY</option>
+					<option value="QWERTY">QWERTY</option>
+				</select>
+			</div>
+			<div>
+				<select id="changeWaveform">
+					<option value="sine">Sine</option>
+					<option value="square">Square</option>
+					<option value="sawtooth">Sawtooth</option>
+					<option value="triangle">Triangle</option>
+				</select>
+				|<input type="checkbox" id="showWave" checked>
+				<label for="showWave">Show Wave Form</label>
+				|<input type="checkbox" id="changeMode" checked>
+				<label for="changeMode">Dark Mode</label>
+			</div>
 		</footer>
 	<script src="index.js"></script>
 </body>
