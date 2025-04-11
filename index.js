@@ -1,4 +1,6 @@
-// Configurations
+/******************
+ * CONFIGURATIONS *
+ ******************/
 const CONFIG = {
   subdivisions: 31,
   radius: 50,
@@ -7,39 +9,39 @@ const CONFIG = {
   canvasSize: 500,
   dotSize: 4,
   scaleFactor: 4,
-  maxVoices: 31
+	smallestInterval: undefined,
+
+  maxVoices: 8,
+  attackTime: 0.02,
+  releaseTime: 0.05,
 };
 const letters = ["AZERTYUIOPQSDFGHJKLMWXCVBN"];
-
 const style = window.getComputedStyle(document.body)
-const COLORS = {
+let COLORS = {
 	white: style.getPropertyValue('--white'),
 	black: style.getPropertyValue('--black'),
 	red: style.getPropertyValue('--red'),
-	blue: style.getPropertyValue('--blue'),
-	blue2: style.getPropertyValue('--blue2')
+	blue: style.getPropertyValue('--blue')
 };
 
-// State management
 const state = {
   notes: [],
   audioContext: null,
-  oscillators: {}, // Track active oscillators by frequency
+  oscillators: {},
 	showFreq: true,
 	showKeys: true,
 	showWave: true,
+	darkMode: true,
 	layout: "AZERTYUIOPQSDFGHJKLMWXCVBN",
 	type: "sine",
 
 };
 
-// Audio functions
+/********************
+ * AUDIO MANAGEMENT *
+ ********************/
 function initAudio() {
   state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-}
-
-function playNote(frequency) {
-  noteOn(frequency);
 }
 
 function stopNote(frequency) {
@@ -50,48 +52,71 @@ function stopAllNotes() {
 	Object.keys(state.oscillators).forEach(frequency => noteOff(frequency));
 }
 
-function noteOn(frequency) {
-  if (state.oscillators[frequency]) return; // Avoid duplicate notes
+function playNote(frequency) {
+  if (state.oscillators[frequency]) return;
 
-  // Kill the oldest note if we exceed maxVoices
+  // Voice management
   if (Object.keys(state.oscillators).length >= CONFIG.maxVoices) {
-    const oldestFrequency = Object.keys(state.oscillators)[0]; // Get the first key (oldest)
-    noteOff(oldestFrequency); // Stop the oldest note
+    const oldestFrequency = Object.keys(state.oscillators)[0];
+    noteOff(oldestFrequency);
   }
 
+  const now = state.audioContext.currentTime;
   const osc = state.audioContext.createOscillator();
   const gainNode = state.audioContext.createGain();
 
-  osc.type = state.type || 'sine'; // Default to sine wave
-  osc.frequency.value = frequency;
+  // NEW: Add compressor to prevent clipping
+  const compressor = state.audioContext.createDynamicsCompressor();
+  compressor.threshold.setValueAtTime(-24, now);
+  compressor.ratio.setValueAtTime(12, now);
 
-  // Initial volume
-  gainNode.gain.setValueAtTime(0, state.audioContext.currentTime);
-  gainNode.gain.linearRampToValueAtTime(0.2, state.audioContext.currentTime + 0.05); // Attack
+  // Oscillator setup
+  osc.type = state.type || 'sine';
+  osc.frequency.setValueAtTime(frequency, now);
 
+  // Attack phase (fixed initial value)
+  gainNode.gain.cancelScheduledValues(now);
+  gainNode.gain.setValueAtTime(0.0001, now); // Start from near-zero
+  gainNode.gain.exponentialRampToValueAtTime(0.2, now + CONFIG.attackTime);
+
+  // Audio routing
   osc.connect(gainNode);
-  gainNode.connect(state.audioContext.destination);
-  osc.start();
+  gainNode.connect(compressor);
+  compressor.connect(state.audioContext.destination);
 
-  state.oscillators[frequency] = { osc, gainNode }; // Store oscillator
+  osc.start();
+  state.oscillators[frequency] = { osc, gainNode, compressor };
   drawPlayingNotes();
 }
 
 function noteOff(frequency) {
   const voice = state.oscillators[frequency];
   if (voice) {
-    voice.gainNode.gain.linearRampToValueAtTime(0.001, state.audioContext.currentTime + 0.1); // Release
-    voice.osc.stop(state.audioContext.currentTime + 0.1);
+    const now = state.audioContext.currentTime;
+
+    // Release phase
+    voice.gainNode.gain.cancelScheduledValues(now);
+    voice.gainNode.gain.setValueAtTime(voice.gainNode.gain.value, now);
+
+    // Exponential ramp to near-zero
+    voice.gainNode.gain.exponentialRampToValueAtTime(0.001, now + CONFIG.releaseTime);
+
+    // Final linear ramp to absolute zero
+    voice.gainNode.gain.linearRampToValueAtTime(0, now + CONFIG.releaseTime + 0.005);
+
+    voice.osc.stop(now + CONFIG.releaseTime + 0.01); // Extra buffer
     delete state.oscillators[frequency];
   }
   drawPlayingNotes();
 }
 
-// Calculation functions
+/*************************
+ * CALCULATION FUNCTIONS *
+ *************************/
 function calculateNoteFrequencies() {
   return Array.from({ length: CONFIG.subdivisions }, (_, i) => {
     return Math.pow(2, i / CONFIG.subdivisions) * CONFIG.startFreq
-  });
+	});
 }
 
 function calculateNotePositions(radius = CONFIG.radius) {
@@ -104,7 +129,20 @@ function calculateNotePositions(radius = CONFIG.radius) {
   });
 }
 
-// Drawing functions
+function normalize(value, min, max, newMin, newMax) {
+	return ((value - min) * (newMax - newMin)) / (max - min) + newMin;
+}
+
+function findSmallestPerfectSquare(n) {
+	const sqrt = Math.sqrt(n);
+	if (sqrt % 1 === 0) return sqrt;
+  const nextNum = Math.floor(sqrt) + 1;
+  return nextNum;
+}
+
+/*********************
+ * DRAWING FUNCTIONS *
+ *********************/
 function setupCanvas(canvas) {
   canvas.width = CONFIG.canvasSize;
   canvas.height = CONFIG.canvasSize;
@@ -128,19 +166,11 @@ function drawMainCircle() {
   ctx.stroke();
 }
 
-// Main drawing function
 function drawAllNotes() {
   const frequencies = calculateNoteFrequencies();
   const positions = calculateNotePositions();
 
   state.notes = positions.map((pos, i) => ({ ...pos, frequency: frequencies[i], index: i }));
-}
-
-function findSmallestPerfectSquare(n) {
-	const sqrt = Math.sqrt(n);
-	if (sqrt % 1 === 0) return sqrt;
-  const nextNum = Math.floor(sqrt) + 1;
-  return nextNum;
 }
 
 function fillTable() {
@@ -152,12 +182,15 @@ function fillTable() {
   table.innerHTML = ''; // Clear existing table
 
   for (let i = 0; i < rows; i++) {
+		const index = i * cols;
+		if (index > notes.length)
+			break;
     const row = document.createElement('tr');
     for (let j = 0; j < cols; j++) {
       const index = i * cols + j;
       if (index < notes.length) {
         const cell = document.createElement('td');
-        cell.innerText = `${index}`;
+        cell.innerHTML = `<p>${index}</p>`;
         cell.dataset.frequency = notes[index].frequency; // Store frequency
         cell.dataset.index = index; // Store frequency
 				if(state.showFreq) {
@@ -184,6 +217,42 @@ function fillTable() {
 	const emptyCells = table.querySelectorAll('td:not([data-frequency])');
 	for (cell of emptyCells)
 		cell.style.border = "none";
+}
+
+
+
+function updateTableSize() {
+	const tds = document.querySelectorAll('td');
+	const trs = document.querySelectorAll('tr');
+	const ps = document.querySelectorAll('td>p');
+	const table = document.getElementById('table-container');
+
+	const tableWidth = table.clientWidth;
+	const tableHeight = table.clientHeight;
+	const littleSquare = findSmallestPerfectSquare(CONFIG.subdivisions);
+	const rows = trs.length;
+	const cols = trs[0]?.children.length || 0;
+
+	const cellSize = Math.floor(Math.min(tableWidth / cols, tableHeight / rows));
+
+	for (let i = 0; i < tds.length; i++) {
+		tds[i].style.width = `${cellSize}px`;
+		tds[i].style.height = `${cellSize}px`;
+		tds[i].style.maxWidth = `${cellSize}px`;
+		tds[i].style.maxHeight = `${cellSize}px`;
+		tds[i].style.overflow = 'hidden';
+		if (ps[i])
+			ps[i].style.fontSize = `${cellSize / 2}px`;
+	}
+
+	const keys = document.querySelectorAll('.key');
+	const freqs = document.querySelectorAll('.freq');
+
+	for (const key of keys)
+		key.style.fontSize = `${cellSize / 6}px`;
+
+	for (const freq of freqs)
+		freq.style.fontSize = `${cellSize / 8}px`;
 }
 
 function drawPlayingNotes() {
@@ -216,6 +285,7 @@ function drawPlayingNotes() {
 		ctx.arc(positions[0].x, positions[0].y, 0.09, 0, Math.PI * 2);
 		for (let i = 1; i < playingNotes.length; i++) {
 			ctx.lineTo(positions[i].x, positions[i].y);
+			ctx.arc(positions[i].x, positions[i].y, 0.09, 0, Math.PI * 2);
 		}
 		ctx.lineTo(positions[0].x, positions[0].y);
 		ctx.arc(positions[0].x, positions[0].y, 0.09, 0, Math.PI * 2);
@@ -320,12 +390,9 @@ function drawWaveForms() {
 	}
 }
 
-function normalize(value, min, max, newMin, newMax) {
-	return ((value - min) * (newMax - newMin)) / (max - min) + newMin;
-}
-
-
-// Event handlers
+/******************
+ * EVENT HANDLERS *
+ ******************/
 function handleTableClick(event) {
   const cell = event.target.closest('td');
   if (!cell) return;
@@ -401,7 +468,9 @@ function handleWaveFormChange() {
 	update();
 }
 
-// Keyboard support
+/********************
+ * KEYBOARD SUPPORT *
+ ********************/
 const key_to_index = {};
 function calculate_key_to_index() {
 	const keys = letters[0].split('');
@@ -434,7 +503,11 @@ function toggleFooterAndInfos() {
 	}
 }
 
+const pressedKeys = new Set();
 document.addEventListener('keydown', (e) => {
+	if (pressedKeys.has(e.key)) return; // Prevent duplicate key presses
+	console.log(e.key)
+	pressedKeys.add(e.key);
   const noteKey = keyToFrequency(e.key);
   if (noteKey) {
     playNote(noteKey);
@@ -446,6 +519,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('keyup', (e) => {
+	pressedKeys.delete(e.key);
   const noteKey = keyToFrequency(e.key);
   if (noteKey) {
     stopNote(noteKey);
@@ -470,7 +544,9 @@ function preventSubmit2(e) {
 	}
 }
 
-// Initialization
+/******************
+ * INITIALIZATION *
+ ******************/
 function init() {
   initAudio();
 	handleLayoutChange();
@@ -481,15 +557,14 @@ function init() {
   document.querySelector('#showWave').addEventListener('click', handleShowWaveFormClick);
 	document.querySelector('#changeLayout').addEventListener('change', handleLayoutChange);
 	document.querySelector('#changeWaveform').addEventListener('change', handleWaveFormChange);
-	// document.querySelector('#StartingFreq').addEventListener('change', (e) => {
-	// 	CONFIG.startFreq = e.target.value;
-	// 	CONFIG.endFreq = CONFIG.startFreq * 2;
-	// 	update();
-	// });
+	document.querySelector('#changeMode').addEventListener('change', handleModeChange);
 	document.querySelector('#subdivNb').addEventListener('change', (e) => {
 		CONFIG.subdivisions = e.target.value;
 		update();
 	});
+	CONFIG.subdivisions = parseInt(document.querySelector('#subdivNb').value);
+	state.darkMode = document.querySelector('#changeMode').checked;
+	CONFIG.smallestInterval = (CONFIG.endFreq-CONFIG.startFreq) / CONFIG.subdivisions;
 	update();
 }
 
@@ -502,7 +577,25 @@ function update() {
 	drawPlayingNotes();
 	if(state.showWave)
 		drawWaveForms();
+	updateTableSize();
 }
 
-// Start application
+function handleModeChange() {
+	const firstVar = getComputedStyle(document.documentElement).getPropertyValue('--white');
+	const secondVar = getComputedStyle(document.documentElement).getPropertyValue('--black');
+
+	document.documentElement.style.setProperty('--white', secondVar);
+	document.documentElement.style.setProperty('--black', firstVar);
+	COLORS = {
+		white: style.getPropertyValue('--white'),
+		black: style.getPropertyValue('--black'),
+		red: style.getPropertyValue('--red'),
+		blue: style.getPropertyValue('--blue')
+	};
+	update();
+}
+
+/*********************
+ * START APPLICATION *
+ *********************/
 init();
