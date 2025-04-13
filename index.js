@@ -53,6 +53,7 @@ function stopAllNotes() {
 }
 
 function playNote(frequency) {
+	console.log(frequency);
   if (state.oscillators[frequency]) return;
 
   // Voice management
@@ -340,7 +341,7 @@ function writeIndexes() {
 	}
 }
 
-function drawWaveForms() {
+function drawWaveForms() { // c'est faux !!!
 	if (!state.showWave) return;
 
   const canvas = document.getElementById('waveform');
@@ -361,7 +362,7 @@ function drawWaveForms() {
 		ctx.moveTo(waveformX, waveformY + waveformHeight / 2);
 		ctx.beginPath();
 		const ys = [];
-		for (let i = 0; i < waveformWidth; i++) {
+		for (let i = 0; i < waveformWidth; i+=0.5) {
 			const x = i / waveformWidth * 2 * Math.PI * frequency / 100 + state.time;
 			let y;
 			switch (state.type) {
@@ -600,3 +601,70 @@ const showWaveInterval = setInterval(drawWaveForms, 1000 / 50); // 30 FPS
  * START APPLICATION *
  *********************/
 init();
+
+if (navigator.requestMIDIAccess) {
+	navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+}
+
+function onMIDIFailure() {
+	console.error('Could not access your MIDI devices.');
+}
+
+const connectedInputs = new Map();
+
+function onMIDISuccess(midiAccess) {
+	midiAccess.onstatechange = updateDevices;
+
+	for (let input of midiAccess.inputs.values()) {
+		if (input.name === "Q Mini") {
+			connectedInputs.set(input.id, input);
+			input.onmidimessage = handleInput;
+		}
+	}
+}
+
+function updateDevices(event) {
+	console.log(event.port.name)
+	if (event.port.name != "Q Mini")
+		return;
+	if (event.port.connection == "open" && event.port.state == "connected") {
+		event.port.onmidimessage = handleInput;
+		const popUp = document.getElementById('midiConnection');
+		popUp.classList.add('connected');
+		popUp.style.top = "0px";
+		popUp.innerText = "Connected to MIDI device: " + event.port.name;
+		setTimeout(() => {
+			popUp.style.top = "-52px";
+			popUp.classList.remove('connected');
+		}, 1500);
+	} else if (event.port.connection == "closed" || event.port.connection == "pending") {
+		event.port.onmidimessage = null;
+		const popUp = document.getElementById('midiConnection');
+		popUp.classList.add('disconnected');
+		popUp.style.top = "0px";
+		popUp.innerText = "Disconnected to MIDI device: " + event.port.name;
+		setTimeout(() => {
+			popUp.style.top = "-52px";
+			popUp.classList.remove('disconnected');
+		}, 1500);
+	}
+}
+
+function handleInput(input) {
+
+	const command = input.data[0];
+	const note = input.data[1];
+	const velocity = input.data[2];
+	if (command >= 144 && command <= 159) {
+		if(velocity > 0)
+			playNote(keyToFrequency(noteToKey(note)));
+		else
+			noteOff(keyToFrequency(noteToKey(note)));
+	} else if (command >= 128 && command <= 143) {
+		noteOff(keyToFrequency(noteToKey(note)));
+	}
+}
+
+function noteToKey(note) {
+	return letters[0][note % (CONFIG.subdivisions)] || "";
+}
