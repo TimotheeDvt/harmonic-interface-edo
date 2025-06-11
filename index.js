@@ -2,7 +2,7 @@
  * CONFIGURATIONS *
  ******************/
 const CONFIG = {
-  subdivisions: 31,
+  subdivisions: 12,
   radius: 50,
   startFreq: 440,
   endFreq: this.startFreq * 2,
@@ -15,7 +15,7 @@ const CONFIG = {
   attackTime: 0.02,
   releaseTime: 0.05,
 	scaleJustIntonation : [
-		1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 5/2, 9/5, 15/8, 2
+		1, 16/15, 10/9, 9/8, 6/5, 5/4, 4/3, 45/32, 64/42, 3/2, 8/5, 5/3, 7/4, 16/9, 9/5, 15/8, 2
 	],
 	scalePythagorean : [
 		1, 256/243, 9/8, 32/27, 81/64, 4/3, 1024/729, 729/512, 3/2, 128/81, 27/16, 16/9, 243/128, 2
@@ -750,7 +750,6 @@ function showPopUp(element, message, statusClass) {
 // Handle incoming MIDI messages
 function handleInput(event) {
   const [command, note, velocity] = event.data;
-	console.log(note)
 
 	const freq = noteToFreq(note);
 	if (freq == null) return;
