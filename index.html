@@ -5,6 +5,7 @@
 	<link rel="stylesheet" href="styles.css">
 </head>
 <body>
+	<h1 id="toRemove">Please click on the screen to start the audio context.</h1>
 	<div id="infos"><p>🛈</p></div>
 	<div id="main">
 		<h1>Harmonic Interface for EDO stuff</h1>
@@ -13,7 +14,7 @@
 		I discovered the fascinating world of Equal Divisions of the Octave (EDO) thanks to <a href="https://www.youtube.com/@LeviMcClain" target="_blank">Levi McClain</a>'s inspiring work.<br>
 		This project is an experiment to explore EDO, particularly systems like 24-EDO for quarter tones and 31-EDO for its harmonic approximations (and, admittedly, a productive distraction from my revisions).
 		<br><br>
-		I hope you enjoy it! This is open source, and you can find the code <a href="https://github.com/TimotheeDvt/harmonic-interface-edo" target="_blank">here</a>. Please be kind – it's a passion project!
+		I hope you enjoy it! This is open source, and you can find the code <a href="https://github.com/Tablatim/harmonic-interface-edo" target="_blank">here</a>. Please be kind – it's a passion project!
 		<br><br>
 		Let me know if you'd like any further adjustments!
 		<br><br>
@@ -21,6 +22,9 @@
 		Have a fun !!<br><br>
 		Tips : press the "space" key to toggle footer and infos visibility<br>
 	</p>
+	</div>
+	<div id="midiConnection">
+		<p>A midi device is connected</p>
 	</div>
   <div id="container">
     <canvas id="circle"></canvas>
@@ -38,8 +42,13 @@
 	<footer>
 		<form id="form">
 			<div>
-				<!-- <input type="number" id="StartingFreq" placeholder="Freq" value="440" min="0" required onkeypress="preventSubmit1(event)"> -->
-				<input type="number" id="subdivNb" placeholder="EDO steps" value="31" min="1" required onkeypress="preventSubmit2(event)">
+				<input type="number" id="StartingFreq" placeholder="Freq" value="440" min="0" required onkeypress="preventSubmit1(event)">
+				<input type="number" id="subdivNb" placeholder="EDO steps" value="12" min="1" required onkeypress="preventSubmit2(event)">
+				|<select id="changeScale" hidden>
+					<option value="12-EDO">12-EDO Scale</option>
+					<option value="justIntonation">Just Intonation Scale</option>
+					<option value="pythagorean">Pythagorean Scale</option>
+				</select>
 				|<input type="checkbox" id="showKey" checked>
 				<label for="showKey">Show keys</label>
 				|<input type="checkbox" id="showFreq" checked>
@@ -60,6 +69,7 @@
 				<label for="showWave">Show Wave Form</label>
 				|<input type="checkbox" id="changeMode" checked>
 				<label for="changeMode">Dark Mode</label>
+				|<select id="midiControl"></select>
 			</div>
 		</footer>
 	<script src="index.js"></script>

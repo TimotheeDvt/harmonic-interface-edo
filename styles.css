@@ -3,6 +3,9 @@
   --black: #1C1C1C;
   --red: #FE5658;
   --blue: #6F8FF0;
+  --green: #1E5128;
+  --orange: #413C26;
+  --yellow: #FDE87B;
 }
 
 body {
@@ -79,6 +82,37 @@ a {
   transition: all 0.3s ease;
 }
 
+#midiConnection {
+  position: absolute;
+  top: -100px;
+  width: fit-content;
+  height: 50px;
+  right: auto;
+  border-radius: 0 0 25px 25px;
+  font-size: 2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+  padding: 20px;
+}
+
+.connected {
+  background: var(--green);
+  color: var(--white);
+}
+
+.disconnected {
+  background: var(--red);
+  color: var(--black);
+}
+
+.pending {
+  background: var(--orange);
+  color: var(--white);
+}
+
 #container {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -139,8 +173,8 @@ td > p {
   position: absolute;
   /* background: var(--black); */
   aspect-ratio: 1/1;
-  width: 300px;
-  height: 150px;
+  width: 100%;
+  height: 90px;
   bottom: 0;
   right: 0;
   z-index: 0;
@@ -183,6 +217,7 @@ footer {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
+  background-color: var(--black);
   align-items: center;
   margin-top: -10px;
   border: 1px solid var(--white);
@@ -191,6 +226,11 @@ footer {
   border-radius: 5px;
   width: 100%;
   z-index: 10;
+  transition: width 0.3s ease;
+}
+
+#form > * {
+  transition: width 0.3s ease;
 }
 
 input[type="number"] {

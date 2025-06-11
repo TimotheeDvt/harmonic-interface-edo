@@ -24,7 +24,7 @@
 ## 🕹️ Quick Start
 
 1. **Instant Access**  
-   → [Click here to launch the interface](https://timotheedvt.github.io/harmonic-interface-edo/)
+   → [Click here to launch the interface](https://tablatim.github.io/harmonic-interface-edo/)
 
 2. **Minimalist Setup**  
    Select your preferred EDO from the menu

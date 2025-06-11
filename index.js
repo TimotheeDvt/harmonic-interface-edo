@@ -14,8 +14,14 @@ const CONFIG = {
   maxVoices: 8,
   attackTime: 0.02,
   releaseTime: 0.05,
+	scaleJustIntonation : [
+		1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 5/2, 9/5, 15/8, 2
+	],
+	scalePythagorean : [
+		1, 256/243, 9/8, 32/27, 81/64, 4/3, 1024/729, 729/512, 3/2, 128/81, 27/16, 16/9, 243/128, 2
+	]
 };
-const letters = ["AZERTYUIOPQSDFGHJKLMWXCVBN123456789"];
+const letters = ["AZERTYUIOPQSDFGHJKLMWXCVBN123456789", "QWERTYUIOPASDFGHJKLZXCVBNM123456789"];
 const style = window.getComputedStyle(document.body)
 let COLORS = {
 	white: style.getPropertyValue('--white'),
@@ -32,9 +38,10 @@ const state = {
 	showKeys: true,
 	showWave: true,
 	darkMode: true,
-	layout: "AZERTYUIOPQSDFGHJKLMWXCVBN123456789",
+	layout: 0,
 	type: "sine",
-	time: 0
+	time: 0,
+	scale: "justIntonation"
 };
 
 /********************
@@ -52,7 +59,7 @@ function stopAllNotes() {
 	Object.keys(state.oscillators).forEach(frequency => noteOff(frequency));
 }
 
-function playNote(frequency) {
+function playNote(frequency) { // TODO: Add velocity
   if (state.oscillators[frequency]) return;
 
   // Voice management
@@ -114,19 +121,32 @@ function noteOff(frequency) {
  * CALCULATION FUNCTIONS *
  *************************/
 function calculateNoteFrequencies() {
-  return Array.from({ length: CONFIG.subdivisions }, (_, i) => {
-    return Math.pow(2, i / CONFIG.subdivisions) * CONFIG.startFreq
+	if (state.scale === "justIntonation")
+		return Array.from({ length: CONFIG.subdivisions }, (_, i) => {
+			return CONFIG.startFreq * CONFIG.scaleJustIntonation[i];
+		});
+	if (state.scale === "pythagorean") {
+		return Array.from({ length: CONFIG.subdivisions }, (_, i) => {
+			return CONFIG.startFreq * CONFIG.scalePythagorean[i];
+		});
+	}
+	return Array.from({ length: CONFIG.subdivisions }, (_, i) => {
+		return CONFIG.startFreq * 2 ** (i / CONFIG.subdivisions);
 	});
 }
 
 function calculateNotePositions(radius = CONFIG.radius) {
-  return Array.from({ length: CONFIG.subdivisions}, (_, i) => {
-    const angle = 2 * Math.PI * i / (CONFIG.subdivisions) - Math.PI / 2; // Start at the top
-    return {
-      x: radius * Math.cos(angle),
-      y: radius * Math.sin(angle)
-    };
-  });
+	// calculate position based on note frequency
+	const ret = [{ x: radius*Math.cos(0), y: radius*Math.sin(0), angle: 0 }];
+	for (let i = 1; i < CONFIG.subdivisions; i++) {
+		const angle = ret[i-1].angle + (2*Math.PI) / CONFIG.subdivisions;
+		ret.push({
+			x: radius * Math.cos(angle),
+			y: radius * Math.sin(angle),
+			angle
+		});
+	}
+	return ret;
 }
 
 function normalize(value, min, max, newMin, newMax) {
@@ -168,6 +188,7 @@ function drawMainCircle() {
 
 function drawAllNotes() {
   const frequencies = calculateNoteFrequencies();
+	state.notes = frequencies.map((freq, i) => ({ frequency: freq, index: i }));
   const positions = calculateNotePositions();
 
   state.notes = positions.map((pos, i) => ({ ...pos, frequency: frequencies[i], index: i }));
@@ -205,7 +226,7 @@ function fillTable() {
 					const key = document.createElement('div');
 
 					key.className = "key";
-					key.innerText = letters[0][index % (CONFIG.subdivisions)] || "";
+					key.innerText = letters[state.layout][index % (CONFIG.subdivisions)] || "";
 
 					cell.appendChild(key);
 				}
@@ -340,7 +361,7 @@ function writeIndexes() {
 	}
 }
 
-function drawWaveForms() {
+function drawWaveForms() { // c'est faux !!!
 	if (!state.showWave) return;
 
   const canvas = document.getElementById('waveform');
@@ -361,7 +382,7 @@ function drawWaveForms() {
 		ctx.moveTo(waveformX, waveformY + waveformHeight / 2);
 		ctx.beginPath();
 		const ys = [];
-		for (let i = 0; i < waveformWidth; i++) {
+		for (let i = 0; i < waveformWidth; i+=0.5) {
 			const x = i / waveformWidth * 2 * Math.PI * frequency / 100 + state.time;
 			let y;
 			switch (state.type) {
@@ -457,11 +478,11 @@ function handleShowWaveFormClick() {
 }
 
 function handleLayoutChange() {
-	state.layout = document.getElementById('changeLayout').value;
-	if (state.layout === "AZERTY")
-		letters[0] = "AZERTYUIOPQSDFGHJKLMWXCVBN123456789";
-	else if (state.layout === "QWERTY")
-		letters[0] = "QWERTYUIOPASDFGHJKLZXCVBNM123456789";
+	const layout = document.getElementById('changeLayout').value;
+	if (layout === "AZERTY")
+		state.layout = 0;
+	else if (layout === "QWERTY")
+		state.layout = 1;
 	update();
 }
 
@@ -485,12 +506,18 @@ function handleModeChange() {
 	update();
 }
 
+function handleScaleChange() {
+	const scale = document.getElementById('changeScale').value;
+	state.scale = scale;
+	update();
+}
+
 /********************
  * KEYBOARD SUPPORT *
  ********************/
 const key_to_index = {};
 function calculate_key_to_index() {
-	const keys = letters[0].split('');
+	const keys = letters[state.layout].split('');
 	for (let i = 0; i < keys.length; i++) {
 		key_to_index[keys[i]] = i % (CONFIG.subdivisions);
 	}
@@ -560,6 +587,10 @@ function preventSubmit2(e) {
 	}
 }
 
+document.addEventListener("click", (e) => {
+	document.getElementById("toRemove").style.visibility = "hidden";
+})
+
 /******************
  * INITIALIZATION *
  ******************/
@@ -574,8 +605,13 @@ function init() {
 	document.querySelector('#changeLayout').addEventListener('change', handleLayoutChange);
 	document.querySelector('#changeWaveform').addEventListener('change', handleWaveFormChange);
 	document.querySelector('#changeMode').addEventListener('change', handleModeChange);
+	document.querySelector('#changeScale').addEventListener('change', handleScaleChange);
 	document.querySelector('#subdivNb').addEventListener('change', (e) => {
 		CONFIG.subdivisions = e.target.value;
+		update();
+	});
+	document.querySelector('#StartingFreq').addEventListener('change', (e) => {
+		CONFIG.startFreq = e.target.value;
 		update();
 	});
 	CONFIG.subdivisions = parseInt(document.querySelector('#subdivNb').value);
@@ -585,6 +621,17 @@ function init() {
 }
 
 function update() {
+	if (CONFIG.subdivisions == 12) {
+		const select = document.getElementById('changeScale');
+		state.scale = select.value;
+		select.hidden = false;
+	} else {
+		const select = document.getElementById('changeScale');
+		const option = select.querySelector(`option[value="12-EDO"]`);
+		option.selected = true;
+		select.hidden = true;
+		state.scale = null;
+	}
 	calculate_key_to_index();
   drawMainCircle();
   drawAllNotes();
@@ -600,3 +647,129 @@ const showWaveInterval = setInterval(drawWaveForms, 1000 / 50); // 30 FPS
  * START APPLICATION *
  *********************/
 init();
+
+// Check if the browser supports Web MIDI API
+if (navigator.requestMIDIAccess) {
+  navigator.requestMIDIAccess( { sysex: true } )
+    .then(onMIDISuccess, onMIDIFailure)
+    .catch((error) => console.error("Error accessing MIDI devices:", error));
+} else {
+  console.error("Web MIDI API is not supported in this browser.");
+}
+
+// Check MIDI permissions using Permissions API
+navigator.permissions.query({ name: "midi", sysex: true }).then((result) => {
+  if (result.state === "granted") {
+    navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+  } else if (result.state === "prompt") {
+    console.warn("MIDI access requires user permission.");
+  } else {
+    console.error("MIDI access denied.");
+  }
+});
+
+// Handle failure to access MIDI devices
+function onMIDIFailure(error) {
+  console.error("Failed to get MIDI access:", error);
+}
+
+// Map to store connected MIDI inputs
+const connectedInputs = new Map();
+
+// Handle successful access to MIDI devices
+function onMIDISuccess(midiAccess) {
+  // console.log("MIDI Access Object:", midiAccess);
+
+  // List all available MIDI inputs and outputs
+  listInputsAndOutputs(midiAccess);
+
+  // Listen for device connection/disconnection events
+  midiAccess.onstatechange = updateDevices;
+
+  // Set up message handlers for specific inputs
+  for (const input of midiAccess.inputs.values()) {
+		input.onmidimessage = handleInput;
+  }
+}
+
+const isShowed = new Map();
+
+// List all available MIDI inputs and outputs
+function listInputsAndOutputs(midiAccess) {
+  const select = document.getElementById('midiControl');
+  for (const [id, input] of midiAccess.inputs) {
+		if (isShowed.has(id))
+			continue;
+		isShowed.set(id, true);
+		let selected;
+		select.innerHTML += `<option value="${id}" ${selected}>${input.name}</option>`;
+    console.log(`Input: [ID: ${id}] Name: ${input.name}`);
+  }
+
+  for (const [id, output] of midiAccess.outputs) {
+    console.log(`Output: [ID: ${id}] Name: ${output.name}`);
+  }
+}
+
+// Handle device connection or disconnection events
+function updateDevices(event) {
+  const port = event.port;
+  const timestamp = new Date().toLocaleTimeString();
+  const select = document.getElementById('midiControl');
+  if (port.name !== select.value) return;
+
+  const popUp = document.getElementById('midiConnection');
+  if (port.connection == "open" || port.state == "connected" && !connectedInputs.has(port.id)) {
+		connectedInputs.set(port.id, [port, timestamp]);
+    port.onmidimessage = handleInput;
+    showPopUp(popUp, `Connected to MIDI device: ${port.name}`, 'connected');
+  } else if (port.connection == "closed" && connectedInputs.has(port.id)) {
+		if (connectedInputs.get(port.id)[1] == timestamp) return;
+		connectedInputs.delete(port.id);
+    port.onmidimessage = null;
+    showPopUp(popUp, `Disconnected from MIDI device: ${port.name}`, 'disconnected');
+  } else if (port.connection == "pending"){
+		console.warn(`Pending connection: ${event}`);
+    showPopUp(popUp, `Pending from MIDI device: ${port.name}`, 'pending');
+	}
+}
+
+
+// Display connection status in a pop-up element
+function showPopUp(element, message, statusClass) {
+  element.classList.add(statusClass);
+  element.style.top = "0px";
+  element.innerText = message;
+
+  setTimeout(() => {
+    element.style.top = "-100px";
+    element.classList.remove(statusClass);
+  }, 1500);
+}
+
+// Handle incoming MIDI messages
+function handleInput(event) {
+  const [command, note, velocity] = event.data;
+	console.log(note)
+
+	const freq = noteToFreq(note);
+	if (freq == null) return;
+  if (command >= 144 && command <= 159) { // Note On event
+    if (velocity > 0) playNote(freq);
+    else noteOff(freq); // Note Off with velocity zero
+  } else if (command >= 128 && command <= 143) { // Note Off event
+    noteOff(freq);
+  }
+}
+
+// Convert a MIDI note to a key name
+function noteToFreq(note) {
+	const key = note - 57;
+	if (key < 0) return null;
+  return keyToFrequency(letters[state.layout][key % CONFIG.subdivisions] || "");
+}
+
+
+const scale = [
+	1, 15/16, 8/9, 5/6, 4/5, 3/4, 32/45, 2/3, 5/8, 3/5, 5/9, 8/15, 1/2
+]
